@@ -11,6 +11,18 @@ typedef struct {
     int order;
 } Task;
 
+typedef enum {
+    ALG_RATE,
+    ALG_EDF
+} Algorithm;
+
+typedef struct {
+    int active;
+    int remaining;
+    int arrival;
+    int absolute_deadline;
+} TaskInstance;
+
 int load_tasks(const char *path, int *total_time, Task **tasks, int *num_tasks);
 
 #endif
