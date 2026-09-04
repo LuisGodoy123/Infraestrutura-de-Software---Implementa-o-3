@@ -11,4 +11,6 @@ typedef struct {
     int order;
 } Task;
 
+int load_tasks(const char *path, int *total_time, Task **tasks, int *num_tasks);
+
 #endif

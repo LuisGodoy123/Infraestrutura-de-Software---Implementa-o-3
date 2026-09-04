@@ -55,3 +55,62 @@ static int parse_task_line(const char *line, int order, Task *task) {
 
     return 0;
 }
+
+static FILE *open_input_file(const char *path) {
+    FILE *fp = fopen(path, "r");
+    if (!fp)
+        fprintf(stderr, "erro: nao foi possivel abrir o arquivo %s\n", path);
+    return fp;
+}
+
+int load_tasks(const char *path, int *total_time, Task **tasks, int *num_tasks) {
+    FILE *fp = open_input_file(path);
+    if (!fp)
+        return -1;
+
+    if (read_total_time(fp, total_time) != 0) {
+        fclose(fp);
+        return -1;
+    }
+
+    Task *list = NULL;
+    int count = 0;
+    int capacity = 0;
+    char line[256];
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (line[0] == '\n' || line[0] == '\0')
+            continue;
+
+        if (count == capacity) {
+            capacity = capacity == 0 ? 8 : capacity * 2;
+            Task *grown = realloc(list, capacity * sizeof(Task));
+            if (!grown) {
+                fprintf(stderr, "erro: sem memoria para carregar as tarefas\n");
+                free(list);
+                fclose(fp);
+                return -1;
+            }
+            list = grown;
+        }
+
+        if (parse_task_line(line, count, &list[count]) != 0) {
+            free(list);
+            fclose(fp);
+            return -1;
+        }
+        count++;
+    }
+
+    fclose(fp);
+
+    if (count == 0) {
+        fprintf(stderr, "erro: arquivo nao contem nenhuma tarefa\n");
+        free(list);
+        return -1;
+    }
+
+    *tasks = list;
+    *num_tasks = count;
+    return 0;
+}
