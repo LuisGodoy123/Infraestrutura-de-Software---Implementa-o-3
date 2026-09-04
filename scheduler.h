@@ -23,6 +23,12 @@ typedef struct {
     int absolute_deadline;
 } TaskInstance;
 
+typedef struct {
+    int completed;
+    int lost;
+    int killed;
+} TaskStats;
+
 int load_tasks(const char *path, int *total_time, Task **tasks, int *num_tasks);
 
 #endif
