@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "scheduler.h"
 
@@ -44,8 +45,14 @@ static void execute_one_tick(TaskInstance *instances, TaskStats *stats, int task
 
 static void append_segment(Segment **segments, int *count, int *capacity, int task_index, int duration, char outcome) {
     if (*count == *capacity) {
-        *capacity = *capacity == 0 ? 16 : *capacity * 2;
-        *segments = realloc(*segments, *capacity * sizeof(Segment));
+        int new_capacity = *capacity == 0 ? 16 : *capacity * 2;
+        Segment *grown = realloc(*segments, new_capacity * sizeof(Segment));
+        if (!grown) {
+            fprintf(stderr, "erro: sem memoria para registrar a execucao\n");
+            exit(1);
+        }
+        *segments = grown;
+        *capacity = new_capacity;
     }
 
     (*segments)[*count].task_index = task_index;

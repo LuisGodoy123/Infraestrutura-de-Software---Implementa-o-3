@@ -28,16 +28,31 @@ static int read_total_time(FILE *fp, int *total_time) {
 
 static int parse_task_line(const char *line, int order, Task *task) {
     char name[MAX_NAME_LEN];
-    int period, deadline, burst;
+    char period_str[32], deadline_str[32], burst_str[32];
 
-    int matched = sscanf(line, "%31s %d %d %d", name, &period, &deadline, &burst);
+    int matched = sscanf(line, "%31s %31s %31s %31s", name, period_str, deadline_str, burst_str);
     if (matched != 4) {
         fprintf(stderr, "erro: linha de tarefa malformada: %s\n", line);
         return -1;
     }
 
-    if (period <= 0 || deadline <= 0 || burst <= 0) {
-        fprintf(stderr, "erro: valores da tarefa %s devem ser positivos\n", name);
+    char *end;
+
+    long period = strtol(period_str, &end, 10);
+    if (end == period_str || *end != '\0' || period <= 0) {
+        fprintf(stderr, "erro: periodo invalido na tarefa %s: %s\n", name, period_str);
+        return -1;
+    }
+
+    long deadline = strtol(deadline_str, &end, 10);
+    if (end == deadline_str || *end != '\0' || deadline <= 0) {
+        fprintf(stderr, "erro: deadline invalido na tarefa %s: %s\n", name, deadline_str);
+        return -1;
+    }
+
+    long burst = strtol(burst_str, &end, 10);
+    if (end == burst_str || *end != '\0' || burst <= 0) {
+        fprintf(stderr, "erro: burst invalido na tarefa %s: %s\n", name, burst_str);
         return -1;
     }
 
@@ -48,9 +63,9 @@ static int parse_task_line(const char *line, int order, Task *task) {
 
     strncpy(task->name, name, MAX_NAME_LEN - 1);
     task->name[MAX_NAME_LEN - 1] = '\0';
-    task->period = period;
-    task->deadline = deadline;
-    task->burst = burst;
+    task->period = (int) period;
+    task->deadline = (int) deadline;
+    task->burst = (int) burst;
     task->order = order;
 
     return 0;
