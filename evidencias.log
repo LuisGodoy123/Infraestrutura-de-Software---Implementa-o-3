@@ -40,3 +40,169 @@ OK
 
 Confirma que a generalizacao de pick_next_task (adicao de higher_priority_edf e do
 parametro Algorithm) nao introduziu nenhum warning nem quebrou a compilacao de parser.c.
+
+=== 2026-09-04 - output.c adicionado, compilacao conjunta ===
+
+$ gcc -Wall -Wextra -std=c99 -c output.c parser.c sim.c && echo OK
+OK
+
+=== 2026-09-04 - primeira build completa (main.c pronto) e teste ponta a ponta ===
+
+$ make
+gcc -Wall -Wextra -std=c99 -c main.c
+gcc -Wall -Wextra -std=c99 -c output.c
+gcc -Wall -Wextra -std=c99 -c parser.c
+gcc -Wall -Wextra -std=c99 -c sim.c
+gcc -Wall -Wextra -std=c99 -o scheduler main.o output.o parser.o sim.o
+
+$ ./scheduler rate voo.txt
+(sem saida em stdout)
+exit code: 0
+
+$ cat rate_lagi.out
+EXECUTION BY RATE
+
+[ATT] for 8 units - F
+[NAV] for 12 units - H
+[ATT] for 8 units - F
+[NAV] for 2 units - L
+idle for 10 units
+[ATT] for 8 units - F
+idle for 2 units
+[NAV] for 10 units - H
+[ATT] for 8 units - F
+[NAV] for 5 units - F
+idle for 7 units
+[ATT] for 8 units - F
+idle for 12 units
+
+LOST DEADLINES
+[ATT] 0
+[NAV] 1
+
+COMPLETE EXECUTION
+[ATT] 5
+[NAV] 1
+
+KILLED
+[ATT] 0
+[NAV] 0
+
+RESULTADO: saida identica, byte a byte, ao exemplo EXECUTION BY RATE do enunciado do PDF.
+
+$ ./scheduler edf voo.txt
+(sem saida em stdout)
+exit code: 0
+
+$ cat edf_lagi.out
+EXECUTION BY EDF
+
+[ATT] for 8 units - F
+[NAV] for 15 units - F
+[ATT] for 8 units - F
+idle for 9 units
+[ATT] for 8 units - F
+idle for 2 units
+[NAV] for 10 units - H
+[ATT] for 8 units - F
+[NAV] for 5 units - F
+idle for 7 units
+[ATT] for 8 units - F
+idle for 12 units
+
+LOST DEADLINES
+[ATT] 0
+[NAV] 0
+
+COMPLETE EXECUTION
+[ATT] 5
+[NAV] 2
+
+KILLED
+[ATT] 0
+[NAV] 0
+
+ANALISE COMPARATIVA (para o relatorio): com o mesmo voo.txt, rate perde 1 deadline do
+NAV (LOST DEADLINES [NAV] 1) e edf nao perde nenhum (LOST DEADLINES [NAV] 0). Motivo:
+no rate a prioridade de ATT sobre NAV e fixa (periodo 20 < periodo 50), entao ATT
+sempre preempta NAV ao chegar em t=20, e NAV so retoma em t=28, perdendo o deadline
+(absoluto 30) por 1 u.t. faltante. No edf a prioridade e pelo deadline absoluto da
+instancia corrente: quando ATT chega em t=20 seu deadline absoluto e 32, mas o NAV que
+ja estava rodando tem deadline absoluto 30 (mais cedo) e por isso MANTEM a CPU em vez
+de ser preemptado, terminando a tempo em t=23.
+
+$ ./scheduler rate voo.txt > /tmp/stdout_check.txt 2>/tmp/stderr_check.txt
+$ wc -c < /tmp/stdout_check.txt
+0
+$ wc -c < /tmp/stderr_check.txt
+0
+
+Confirma que nada e impresso em stdout/stderr durante execucao normal.
+
+=== 2026-09-04 - casos de erro (entrada invalida) ===
+
+Cada caso testado individualmente, confirmando: exit code != 0, mensagem coerente em
+stderr, e NENHUM arquivo .out criado (verificado com `ls *.out` antes/depois de cada um).
+
+$ ./scheduler rate
+exit=1 stderr=[uso: ./scheduler <rate|edf> <arquivo_de_entrada>]
+-> cobre: numero incorreto de argumentos
+
+$ ./scheduler foo voo.txt
+exit=1 stderr=[erro: algoritmo invalido 'foo', use 'rate' ou 'edf']
+-> cobre: primeiro argumento diferente de rate/edf
+
+$ ./scheduler rate nao_existe.txt
+exit=1 stderr=[erro: nao foi possivel abrir o arquivo nao_existe.txt]
+-> cobre: arquivo de entrada inexistente
+
+$ printf '100\nATT 20 12\n' > malformado1.txt && ./scheduler rate malformado1.txt
+exit=1 stderr=[erro: linha de tarefa malformada: ATT 20 12]
+-> cobre: campo faltando (burst ausente)
+
+$ printf '100\nATT 20abc 12 8\n' > malformado2.txt && ./scheduler rate malformado2.txt
+exit=1 stderr=[erro: periodo invalido na tarefa ATT: 20abc]
+-> cobre: valor nao numerico
+
+$ printf '100\nATT 20 0 8\n' > malformado3.txt && ./scheduler rate malformado3.txt
+exit=1 stderr=[erro: deadline invalido na tarefa ATT: 0]
+-> cobre: valor nao positivo
+
+$ printf '100\nATT 10 15 8\n' > malformado4.txt && ./scheduler rate malformado4.txt
+exit=1 stderr=[erro: tarefa ATT viola C <= D <= P]
+-> cobre: D > P (deadline 15 > periodo 10)
+
+$ printf '100\nATT 20 12 15\n' > malformado5.txt && ./scheduler rate malformado5.txt
+exit=1 stderr=[erro: tarefa ATT viola C <= D <= P]
+-> cobre: C > D (burst 15 > deadline 12)
+
+Todos os 5 tipos de erro exigidos pelo PDF foram testados e o programa nao criou
+nenhum arquivo de saida em nenhum dos 8 casos.
+
+=== 2026-09-06 - reorganizacao: arquivos de teste movidos para tests/ ===
+
+$ mkdir -p tests && mv voo.txt malformado1.txt malformado2.txt malformado3.txt \
+  malformado4.txt malformado5.txt tests/
+
+$ make && ./scheduler rate tests/voo.txt && diff rate_lagi.out <saida esperada do PDF>
+MATCH EXATO
+
+Confirma que a reorganizacao nao quebrou nada; a partir daqui os testes sao chamados
+como `./scheduler rate tests/voo.txt`, `./scheduler rate tests/malformado1.txt`, etc.
+
+=== 2026-09-06 - reorganizacao revertida: arquivos de volta na raiz ===
+
+$ mv tests/voo.txt tests/malformado1.txt tests/malformado2.txt tests/malformado3.txt \
+  tests/malformado4.txt tests/malformado5.txt . && rmdir tests
+
+A partir daqui os testes voltam a ser chamados direto da raiz, ex:
+`./scheduler rate voo.txt`, `./scheduler rate malformado1.txt`, etc.
+
+=== 2026-09-06 - arquivos de teste .txt removidos do projeto ===
+
+$ rm -f voo.txt malformado1.txt malformado2.txt malformado3.txt malformado4.txt malformado5.txt
+
+Decisao do usuario: manter no projeto apenas .c, .h, Makefile, README e evidencias.log.
+Os testes continuam reproduziveis a partir deste log (conteudo de cada arquivo de
+entrada usado esta registrado acima via `printf`), mesmo sem os .txt fisicos no
+diretorio de entrega.
