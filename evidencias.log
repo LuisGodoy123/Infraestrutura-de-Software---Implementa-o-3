@@ -1,0 +1,42 @@
+Evidencias de teste - Implementacao 3 (Escalonamento rate/edf)
+Ambiente: WSL Ubuntu (gcc 15.2.0, GNU Make 4.4.1)
+
+=== 2026-09-03 - verificacao do ambiente ===
+
+$ wsl --list --verbose
+    NAME      STATE      VERSION
+ *  Ubuntu    Stopped    2
+
+$ wsl -e bash -lc "gcc --version && make --version"
+gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+GNU Make 4.4.1
+
+Confirma que o ambiente de build (gcc + make) esta disponivel via WSL antes de comecar a escrever codigo.
+
+=== 2026-09-04 - primeira compilacao parcial (parser.c + sim.c, sem main.c) ===
+
+$ make
+gcc -Wall -Wextra -std=c99 -c parser.c
+gcc -Wall -Wextra -std=c99 -c sim.c
+gcc -Wall -Wextra -std=c99 -o scheduler parser.o sim.o
+/usr/bin/x86_64-linux-gnu-ld.bfd: .../Scrt1.o: in function `_start':
+(.text+0x1b): undefined reference to `main'
+collect2: error: ld returned 1 exit status
+make: *** [Makefile:9: scheduler] Error 1
+
+Esperado nesta fase: parser.c e sim.c compilam sem nenhum warning de -Wall -Wextra.
+O erro de link ("undefined reference to main") e esperado, pois main.c e output.c
+ainda nao foram escritos.
+
+$ make clean
+rm -f parser.o sim.o scheduler rate_lagi.out edf_lagi.out
+
+Confirma que o alvo clean remove objetos, binario e os .out corretamente.
+
+=== 2026-09-04 - apos generalizar pick_next_task para rate e edf ===
+
+$ gcc -Wall -Wextra -std=c99 -c sim.c parser.c && echo OK
+OK
+
+Confirma que a generalizacao de pick_next_task (adicao de higher_priority_edf e do
+parametro Algorithm) nao introduziu nenhum warning nem quebrou a compilacao de parser.c.
