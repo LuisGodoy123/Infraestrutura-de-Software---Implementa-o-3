@@ -8,14 +8,29 @@ static int higher_priority_rate(const Task *tasks, int a, int b) {
     return tasks[a].order < tasks[b].order;
 }
 
-static int pick_next_task_rate(const Task *tasks, const TaskInstance *instances, int num_tasks) {
+static int higher_priority_edf(const Task *tasks, const TaskInstance *instances, int a, int b) {
+    if (instances[a].absolute_deadline != instances[b].absolute_deadline)
+        return instances[a].absolute_deadline < instances[b].absolute_deadline;
+    return tasks[a].order < tasks[b].order;
+}
+
+static int pick_next_task(const Task *tasks, const TaskInstance *instances, int num_tasks, Algorithm alg) {
     int best = -1;
 
     for (int i = 0; i < num_tasks; i++) {
         if (!instances[i].active || instances[i].remaining <= 0)
             continue;
 
-        if (best == -1 || higher_priority_rate(tasks, i, best))
+        if (best == -1) {
+            best = i;
+            continue;
+        }
+
+        int better = (alg == ALG_RATE)
+            ? higher_priority_rate(tasks, i, best)
+            : higher_priority_edf(tasks, instances, i, best);
+
+        if (better)
             best = i;
     }
 
@@ -95,7 +110,7 @@ void run_simulation(Algorithm alg, const Task *tasks, int num_tasks, int total_t
         check_deadline_misses(instances, stats, num_tasks, t);
         check_arrivals(tasks, instances, num_tasks, t);
 
-        int chosen = (alg == ALG_RATE) ? pick_next_task_rate(tasks, instances, num_tasks) : -1;
+        int chosen = pick_next_task(tasks, instances, num_tasks, alg);
 
         if (chosen != running) {
             if (t > segment_start) {
