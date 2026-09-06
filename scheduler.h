@@ -40,4 +40,7 @@ int load_tasks(const char *path, int *total_time, Task **tasks, int *num_tasks);
 void run_simulation(Algorithm alg, const Task *tasks, int num_tasks, int total_time,
                      Segment **segments, int *num_segments, TaskStats **stats);
 
+int write_output(const char *login, Algorithm alg, const Task *tasks, int num_tasks,
+                  const Segment *segments, int num_segments, const TaskStats *stats);
+
 #endif
