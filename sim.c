@@ -108,21 +108,22 @@ void run_simulation(Algorithm alg, const Task *tasks, int num_tasks, int total_t
 
     for (int t = 0; t < total_time; t++) {
         check_deadline_misses(instances, stats, num_tasks, t);
+
+        char running_outcome = 0;
+        if (running != -1) {
+            if (!instances[running].active)
+                running_outcome = (instances[running].remaining == 0) ? 'F' : 'L';
+            else
+                running_outcome = 'H';
+        }
+
         check_arrivals(tasks, instances, num_tasks, t);
 
         int chosen = pick_next_task(tasks, instances, num_tasks, alg);
 
         if (chosen != running) {
-            if (t > segment_start) {
-                char outcome = 0;
-                if (running != -1) {
-                    if (!instances[running].active)
-                        outcome = (instances[running].remaining == 0) ? 'F' : 'L';
-                    else
-                        outcome = 'H';
-                }
-                append_segment(&segments, &seg_count, &seg_capacity, running, t - segment_start, outcome);
-            }
+            if (t > segment_start)
+                append_segment(&segments, &seg_count, &seg_capacity, running, t - segment_start, running_outcome);
             running = chosen;
             segment_start = t;
         }

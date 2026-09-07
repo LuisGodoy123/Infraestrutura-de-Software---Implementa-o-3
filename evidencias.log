@@ -206,3 +206,97 @@ Decisao do usuario: manter no projeto apenas .c, .h, Makefile, README e evidenci
 Os testes continuam reproduziveis a partir deste log (conteudo de cada arquivo de
 entrada usado esta registrado acima via `printf`), mesmo sem os .txt fisicos no
 diretorio de entrega.
+
+=== 2026-09-07 - bug encontrado: F virando H quando D == P ===
+
+Motivacao do teste: voo.txt so tem 2 tarefas com D < P, entao nunca exercitou o caso
+de empate de prioridade nem o caso de uma tarefa terminar exatamente no instante em
+que sua propria proxima instancia chega (D == P). Criei dois casos novos pra cobrir
+isso:
+
+_tie.txt:
+20
+X 10 10 5
+Y 10 10 5
+
+_killed.txt:
+5
+Z 100 50 10
+
+Resultado ANTES da correcao (./scheduler rate _tie.txt):
+[X] for 5 units - F
+[Y] for 5 units - H   <- ERRADO, deveria ser F (Y terminou a rajada, nao foi preemptada)
+[X] for 5 units - F
+[Y] for 5 units - F
+
+Causa: em run_simulation, o motivo do fechamento do segmento era decidido DEPOIS de
+check_arrivals(t) rodar. Quando D == P, a proxima instancia da mesma tarefa chega no
+EXATO instante em que a rajada anterior termina, entao check_arrivals ja sobrescrevia
+o estado da instancia (active=1, remaining=burst) antes do codigo checar "por que
+esse segmento fechou". O codigo via a instancia nova (ativa, rajada cheia) e concluia
+erradamente que tinha havido preempcao (H), quando na verdade a instancia antiga tinha
+terminado (F).
+
+Correcao: capturar o motivo do fechamento (running_outcome) logo apos
+check_deadline_misses(t) e ANTES de check_arrivals(t) rodar, preservando o estado
+correto da instancia que estava de fato terminando.
+
+Resultado DEPOIS da correcao, rebuild limpo (make clean && make), reexecutando todos
+os casos ja validados mais os dois novos:
+
+$ ./scheduler rate _voo.txt && cat rate_lagi.out
+(identico ao exemplo do PDF - sem regressao)
+
+$ ./scheduler edf _voo.txt && cat edf_lagi.out
+LOST DEADLINES [NAV] 0, COMPLETE EXECUTION [NAV] 2 (sem regressao na analise
+comparativa rate-vs-edf)
+
+$ ./scheduler rate _tie.txt && cat rate_lagi.out
+EXECUTION BY RATE
+
+[X] for 5 units - F
+[Y] for 5 units - F
+[X] for 5 units - F
+[Y] for 5 units - F
+
+LOST DEADLINES
+[X] 0
+[Y] 0
+
+COMPLETE EXECUTION
+[X] 2
+[Y] 2
+
+KILLED
+[X] 0
+[Y] 0
+
+CORRETO: [Y] agora aparece como F. Tambem confirma o desempate por ordem no arquivo -
+X (aparece primeiro) sempre vence o empate de prioridade contra Y, nos dois ciclos.
+
+$ ./scheduler edf _tie.txt && cat edf_lagi.out
+(mesmo resultado do rate, como esperado - periodo == deadline pros dois, entao o
+criterio de prioridade coincide)
+
+$ ./scheduler rate _killed.txt && cat rate_lagi.out
+EXECUTION BY RATE
+
+[Z] for 5 units
+
+LOST DEADLINES
+[Z] 0
+
+COMPLETE EXECUTION
+[Z] 0
+
+KILLED
+[Z] 1
+
+CORRETO: Z ainda esta ativa (rajada nao terminou, deadline absoluto 50 ainda nao
+chegou) quando a simulacao acaba em t=5, entao o ultimo segmento nao recebe letra
+(nem F, H ou L se aplicam - decisao de projeto documentada anteriormente) e o
+contador KILLED e incrementado pela primeira vez em todos os testes.
+
+Este teste exercitou pela primeira vez tres caminhos de codigo que o exemplo unico do
+PDF nunca cobria: empate de prioridade (rate e edf), a contagem KILLED, e o segmento
+final sem letra.
