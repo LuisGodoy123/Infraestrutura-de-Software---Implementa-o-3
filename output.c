@@ -1,5 +1,17 @@
 #include <stdio.h>
+#include <math.h>
 #include "scheduler.h"
+
+static double compute_utilization(const Task *tasks, int num_tasks) {
+    double u = 0.0;
+    for (int i = 0; i < num_tasks; i++)
+        u += (double) tasks[i].burst / tasks[i].period;
+    return u;
+}
+
+static double compute_rm_bound(int num_tasks) {
+    return num_tasks * (pow(2.0, 1.0 / num_tasks) - 1.0);
+}
 
 static void write_segment(FILE *fp, const Task *tasks, const Segment *seg) {
     if (seg->task_index == -1) {
@@ -39,6 +51,10 @@ int write_output(const char *login, Algorithm alg, const Task *tasks, int num_ta
     fprintf(fp, "\nKILLED\n");
     for (int i = 0; i < num_tasks; i++)
         fprintf(fp, "[%s] %d\n", tasks[i].name, stats[i].killed);
+
+    fprintf(fp, "\nSCHEDULABILITY\n");
+    fprintf(fp, "UTILIZATION %.3f\n", compute_utilization(tasks, num_tasks));
+    fprintf(fp, "RM BOUND %.3f\n", compute_rm_bound(num_tasks));
 
     fclose(fp);
     return 0;

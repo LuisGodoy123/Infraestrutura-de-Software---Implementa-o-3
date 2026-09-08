@@ -328,3 +328,62 @@ killed.txt) dentro do lagi.tar, sem alterar o diretorio de trabalho (git).
 
 $ tar -xf lagi.tar && cd lagi && make && ./scheduler rate tests/voo.txt
 (compila sem warnings, roda correto)
+
+=== 2026-09-08 - requisito faltando: secao SCHEDULABILITY (descoberto no autocheck do professor) ===
+
+O autocheck do professor rodou 2 casos de referencia (c1 e c2) contra rate e edf, e
+os 4 falharam (0/2 em cada checker) mesmo com EXECUTION BY / LOST DEADLINES / COMPLETE
+EXECUTION / KILLED identicos ao gabarito. O motivo: o gabarito tem um bloco extra no
+fim do .out que nao esta em nenhum lugar do PDF do enunciado que recebi:
+
+SCHEDULABILITY
+UTILIZATION 0.600
+RM BOUND 0.828
+
+Reconstrui a formula batendo os dois casos do checker:
+- UTILIZATION = soma de burst/periodo de todas as tarefas
+  c1 (ATT P15 C5, FCS P30 C8): 5/15 + 8/30 = 0.600 (bate)
+  c2 (voo.txt, ATT P20 C8, NAV P50 C15): 8/20 + 15/50 = 0.700 (bate)
+- RM BOUND = formula classica de Liu&Layland: n * (2^(1/n) - 1)
+  n=2 tarefas nos dois casos: 2*(sqrt(2)-1) = 0.828 (bate nos dois)
+- Secao identica em rate e edf (e propriedade do conjunto de tarefas, nao do algoritmo)
+
+Implementei compute_utilization e compute_rm_bound em output.c (usa pow() de math.h,
+precisou adicionar -lm no Makefile). Testei:
+
+$ printf '100\nATT 20 12 8\nNAV 50 30 15\n' > _voo.txt
+$ ./scheduler rate _voo.txt && tail -5 rate_lagi.out
+SCHEDULABILITY
+UTILIZATION 0.700
+RM BOUND 0.828
+$ ./scheduler edf _voo.txt && tail -5 edf_lagi.out
+SCHEDULABILITY
+UTILIZATION 0.700
+RM BOUND 0.828
+
+$ printf '60\nATT 15 15 5\nFCS 30 30 8\n' > _c1.txt
+$ ./scheduler rate _c1.txt && cat rate_lagi.out
+(saida identica, byte a byte, ao gabarito "esperado" do checker do professor para o
+caso c1, incluindo UTILIZATION 0.600 e RM BOUND 0.828)
+
+CORRETO: os dois casos de referencia do autocheck (c1 e c2) agora batem exatamente,
+em rate e edf.
+
+=== 2026-09-08 - overflow de int nao era checado (revisao de codigo pos-checker) ===
+
+strtol devolve long, mas o codigo convertia pra int sem checar se o valor cabia
+(period, deadline, burst em parse_task_line; total_time em read_total_time). Um valor
+absurdamente grande passaria como valido e estouraria o int silenciosamente.
+
+Correcao: adicionada checagem `> INT_MAX` (limits.h) em todos os 4 campos numericos.
+
+$ printf '100\nATT 99999999999 12 8\n' > _overflow.txt && ./scheduler rate _overflow.txt
+erro: periodo invalido na tarefa ATT: 99999999999
+exit=1
+
+$ printf '100\nATT 20 12 8\nNAV 50 30 15\n' > _voo.txt && ./scheduler rate _voo.txt && tail -5 rate_lagi.out
+UTILIZATION 0.700
+RM BOUND 0.828
+
+CORRETO: valor absurdo agora e rejeitado, e voo.txt continua batendo com o gabarito
+(sem regressao).

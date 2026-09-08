@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "scheduler.h"
 
 static int read_total_time(FILE *fp, int *total_time) {
@@ -17,7 +18,7 @@ static int read_total_time(FILE *fp, int *total_time) {
     while (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r')
         end++;
 
-    if (end == line || *end != '\0' || value <= 0) {
+    if (end == line || *end != '\0' || value <= 0 || value > INT_MAX) {
         fprintf(stderr, "erro: tempo total de simulacao invalido\n");
         return -1;
     }
@@ -39,19 +40,19 @@ static int parse_task_line(const char *line, int order, Task *task) {
     char *end;
 
     long period = strtol(period_str, &end, 10);
-    if (end == period_str || *end != '\0' || period <= 0) {
+    if (end == period_str || *end != '\0' || period <= 0 || period > INT_MAX) {
         fprintf(stderr, "erro: periodo invalido na tarefa %s: %s\n", name, period_str);
         return -1;
     }
 
     long deadline = strtol(deadline_str, &end, 10);
-    if (end == deadline_str || *end != '\0' || deadline <= 0) {
+    if (end == deadline_str || *end != '\0' || deadline <= 0 || deadline > INT_MAX) {
         fprintf(stderr, "erro: deadline invalido na tarefa %s: %s\n", name, deadline_str);
         return -1;
     }
 
     long burst = strtol(burst_str, &end, 10);
-    if (end == burst_str || *end != '\0' || burst <= 0) {
+    if (end == burst_str || *end != '\0' || burst <= 0 || burst > INT_MAX) {
         fprintf(stderr, "erro: burst invalido na tarefa %s: %s\n", name, burst_str);
         return -1;
     }

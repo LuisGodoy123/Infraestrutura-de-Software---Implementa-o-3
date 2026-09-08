@@ -6,7 +6,7 @@ OBJS = $(SRCS:.c=.o)
 TARGET = scheduler
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) -lm
 
 %.o: %.c scheduler.h
 	$(CC) $(CFLAGS) -c $<
