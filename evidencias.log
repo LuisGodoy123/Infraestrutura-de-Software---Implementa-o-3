@@ -319,3 +319,12 @@ exit=0
 
 CORRETO: arquivo com \r\n e linha em branco extra no fim agora roda normal, sem
 falso erro de entrada malformada.
+
+=== 2026-09-08 - testes incluidos de volta no lagi.tar ===
+
+O PDF do enunciado exige ("Dentro do .tar: os arquivos com o(s) codigo, os testes
+usados, scripts, etc."). Adicionei tests/ (voo.txt, malformado1-5.txt, tie.txt,
+killed.txt) dentro do lagi.tar, sem alterar o diretorio de trabalho (git).
+
+$ tar -xf lagi.tar && cd lagi && make && ./scheduler rate tests/voo.txt
+(compila sem warnings, roda correto)
