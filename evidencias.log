@@ -300,3 +300,22 @@ contador KILLED e incrementado pela primeira vez em todos os testes.
 Este teste exercitou pela primeira vez tres caminhos de codigo que o exemplo unico do
 PDF nunca cobria: empate de prioridade (rate e edf), a contagem KILLED, e o segmento
 final sem letra.
+
+=== 2026-09-08 - bug encontrado: linha em branco \r\n tratada como malformada ===
+
+Motivacao: revisao externa apontou que load_tasks so pulava linha em branco estilo
+Unix (line[0] == '\n'). Num arquivo salvo no Windows, uma linha em branco vem como
+"\r\n", entao line[0] e '\r', nao '\n' - a checagem nao pegava, e a linha (ex: uma
+linha em branco sobrando no fim do arquivo) caia em parse_task_line e era rejeitada
+como "malformada" por engano.
+
+Correcao: adicionar '\r' na checagem de linha em branco em load_tasks (parser.c).
+
+$ make clean && make
+(compila sem warnings)
+
+$ printf '100\r\nATT 20 12 8\r\nNAV 50 30 15\r\n\r\n' > _crlf.txt && ./scheduler rate _crlf.txt
+exit=0
+
+CORRETO: arquivo com \r\n e linha em branco extra no fim agora roda normal, sem
+falso erro de entrada malformada.
