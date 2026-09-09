@@ -387,3 +387,240 @@ RM BOUND 0.828
 
 CORRETO: valor absurdo agora e rejeitado, e voo.txt continua batendo com o gabarito
 (sem regressao).
+
+=== 2026-09-09 - captura bruta via script -c "bash testes.sh" evidencias_raw.log ===
+
+Sessao completa de regressao (build, voo.txt rate/edf, c1_folgado do checker rate/edf,
+tie.txt, killed.txt, overflow, crlf, silencio de stdout/stderr, os 8 casos de erro)
+capturada de forma nao-interativa, sem edicao manual. Conteudo integral abaixo.
+
+Script started on 2026-09-09 09:47:39-03:00 [COMMAND="bash testes.sh" <not executed on terminal>]
+Wed Sep  9 09:47:39 -03 2026
+nononha
+/mnt/c/Users/nonon/Desktop/lagi/Infraestrutura-de-Software---Implementa-o-3
+=== build ===
+rm -f main.o output.o parser.o sim.o scheduler rate_lagi.out edf_lagi.out
+gcc -Wall -Wextra -std=c99 -c main.c
+gcc -Wall -Wextra -std=c99 -c output.c
+gcc -Wall -Wextra -std=c99 -c parser.c
+gcc -Wall -Wextra -std=c99 -c sim.c
+gcc -Wall -Wextra -std=c99 -o scheduler main.o output.o parser.o sim.o -lm
+=== c2: exemplo do enunciado (voo.txt) ===
+EXECUTION BY RATE
+
+[ATT] for 8 units - F
+[NAV] for 12 units - H
+[ATT] for 8 units - F
+[NAV] for 2 units - L
+idle for 10 units
+[ATT] for 8 units - F
+idle for 2 units
+[NAV] for 10 units - H
+[ATT] for 8 units - F
+[NAV] for 5 units - F
+idle for 7 units
+[ATT] for 8 units - F
+idle for 12 units
+
+LOST DEADLINES
+[ATT] 0
+[NAV] 1
+
+COMPLETE EXECUTION
+[ATT] 5
+[NAV] 1
+
+KILLED
+[ATT] 0
+[NAV] 0
+
+SCHEDULABILITY
+UTILIZATION 0.700
+RM BOUND 0.828
+EXECUTION BY EDF
+
+[ATT] for 8 units - F
+[NAV] for 15 units - F
+[ATT] for 8 units - F
+idle for 9 units
+[ATT] for 8 units - F
+idle for 2 units
+[NAV] for 10 units - H
+[ATT] for 8 units - F
+[NAV] for 5 units - F
+idle for 7 units
+[ATT] for 8 units - F
+idle for 12 units
+
+LOST DEADLINES
+[ATT] 0
+[NAV] 0
+
+COMPLETE EXECUTION
+[ATT] 5
+[NAV] 2
+
+KILLED
+[ATT] 0
+[NAV] 0
+
+SCHEDULABILITY
+UTILIZATION 0.700
+RM BOUND 0.828
+=== c1: caso folgado do checker do professor ===
+EXECUTION BY RATE
+
+[ATT] for 5 units - F
+[FCS] for 8 units - F
+idle for 2 units
+[ATT] for 5 units - F
+idle for 10 units
+[ATT] for 5 units - F
+[FCS] for 8 units - F
+idle for 2 units
+[ATT] for 5 units - F
+idle for 10 units
+
+LOST DEADLINES
+[ATT] 0
+[FCS] 0
+
+COMPLETE EXECUTION
+[ATT] 4
+[FCS] 2
+
+KILLED
+[ATT] 0
+[FCS] 0
+
+SCHEDULABILITY
+UTILIZATION 0.600
+RM BOUND 0.828
+EXECUTION BY EDF
+
+[ATT] for 5 units - F
+[FCS] for 8 units - F
+idle for 2 units
+[ATT] for 5 units - F
+idle for 10 units
+[ATT] for 5 units - F
+[FCS] for 8 units - F
+idle for 2 units
+[ATT] for 5 units - F
+idle for 10 units
+
+LOST DEADLINES
+[ATT] 0
+[FCS] 0
+
+COMPLETE EXECUTION
+[ATT] 4
+[FCS] 2
+
+KILLED
+[ATT] 0
+[FCS] 0
+
+SCHEDULABILITY
+UTILIZATION 0.600
+RM BOUND 0.828
+=== empate de prioridade ===
+EXECUTION BY RATE
+
+[X] for 5 units - F
+[Y] for 5 units - F
+[X] for 5 units - F
+[Y] for 5 units - F
+
+LOST DEADLINES
+[X] 0
+[Y] 0
+
+COMPLETE EXECUTION
+[X] 2
+[Y] 2
+
+KILLED
+[X] 0
+[Y] 0
+
+SCHEDULABILITY
+UTILIZATION 1.000
+RM BOUND 0.828
+EXECUTION BY EDF
+
+[X] for 5 units - F
+[Y] for 5 units - F
+[X] for 5 units - F
+[Y] for 5 units - F
+
+LOST DEADLINES
+[X] 0
+[Y] 0
+
+COMPLETE EXECUTION
+[X] 2
+[Y] 2
+
+KILLED
+[X] 0
+[Y] 0
+
+SCHEDULABILITY
+UTILIZATION 1.000
+RM BOUND 0.828
+=== contador KILLED ===
+EXECUTION BY RATE
+
+[Z] for 5 units
+
+LOST DEADLINES
+[Z] 0
+
+COMPLETE EXECUTION
+[Z] 0
+
+KILLED
+[Z] 1
+
+SCHEDULABILITY
+UTILIZATION 0.100
+RM BOUND 1.000
+=== overflow de int ===
+erro: periodo invalido na tarefa ATT: 99999999999
+codigo de saida: 1
+=== linha em branco estilo Windows (\r\n) ===
+codigo de saida: 0
+=== stdout/stderr silenciosos ===
+stdout bytes: 0
+stderr bytes: 0
+=== limpando .out antes dos casos de erro, para a checagem final ser inequivoca ===
+=== casos de erro exigidos ===
+uso: ./scheduler <rate|edf> <arquivo_de_entrada>
+codigo de saida: 1
+erro: algoritmo invalido 'foo', use 'rate' ou 'edf'
+codigo de saida: 1
+erro: nao foi possivel abrir o arquivo nao_existe.txt
+codigo de saida: 1
+erro: linha de tarefa malformada: ATT 20 12
+
+codigo de saida: 1
+erro: periodo invalido na tarefa ATT: 20abc
+codigo de saida: 1
+erro: deadline invalido na tarefa ATT: 0
+codigo de saida: 1
+erro: tarefa ATT viola C <= D <= P
+codigo de saida: 1
+erro: tarefa ATT viola C <= D <= P
+codigo de saida: 1
+=== nenhum .out criado pelos casos de erro acima ===
+ls: cannot access '*.out': No such file or directory
+=== limpeza ===
+rm -f main.o output.o parser.o sim.o scheduler rate_lagi.out edf_lagi.out
+
+Script done on 2026-09-09 09:47:40-03:00 [COMMAND_EXIT_CODE="0"]
+
+Nota: UTILIZATION do teste de empate deu 1.000 (X e Y, period=10 burst=5 cada:
+5/10+5/10=1.0) e do teste killed deu 0.100/RM BOUND 1.000 (Z sozinha, n=1:
+1*(2^1-1)=1.0) - primeira vez que esses dois casos de SCHEDULABILITY com valores
+diferentes de 0.6/0.7/0.828 aparecem documentados.
